@@ -44,7 +44,7 @@ flags.DEFINE_integer("image_size", 64, "The size of image to use (will be center
 flags.DEFINE_integer("output_size", 64, "The size of the output images to produce [64]")
 flags.DEFINE_integer("sample_size", 64, "The number of sample images [64]")
 flags.DEFINE_integer("c_dim", 3, "Dimension of image color. [3]")
-flags.DEFINE_integer("sample_step", 100, "The interval of generating sample. [500]")
+flags.DEFINE_integer("eval_step", 5, "The interval of generating sample. [500]")
 flags.DEFINE_integer("save_step", 100, "The interval of saveing checkpoints. [500]")
 flags.DEFINE_string("dataset", "celebA", "The name of dataset [celebA, mnist, lsun]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
@@ -52,6 +52,8 @@ flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image s
 flags.DEFINE_boolean("is_train", True, "True for training, False for testing [False]")
 flags.DEFINE_boolean("is_crop", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
+flags.DEFINE_float("hyperparameter",0.7,"The parameter for scorer loss calculations")
+flags.DEFINE_float("threshold",0.92,"The confidence for selecting a image")
 FLAGS = flags.FLAGS
 
 # Adding Seed so that random initialization is consistent
@@ -97,8 +99,7 @@ num_epochs = 24
 
 eval_frequency = 10 # Number of steps between evaluations.
 
-###
-        
+###  
     
 def main(_): 
     pp.pprint(flags.FLAGS.__flags)
@@ -125,6 +126,8 @@ def main(_):
         # sample_z --> generator for evaluation, set is_train to False
         # so that BatchNormLayer behave differently
         net_g2, g2_logits = generator_simplified_api(z, is_train=False, reuse=True)
+        # so that scores can be generated after training
+        net_s2, s2_logits = sANN_simplified_api(x_features, is_train=False, reuse=True)
 
         ##========================= DEFINE TRAIN OPS =======================##
         # cost for updating discriminator and generator
@@ -136,12 +139,8 @@ def main(_):
         # generator: try to make the the fake images look real (1)
         g_loss = tl.cost.sigmoid_cross_entropy(d_logits, tf.ones_like(d_logits), name='gfake')
         # cost for updating scorer
+        s_loss=np.sum(s_logits)/FLAGS.batch_size-FLAGS.hyperparameter
         
-        
-        
-        
-        
-
         s_vars = tl.layers.get_variables_with_name('sANN', True, True)
         g_vars = tl.layers.get_variables_with_name('generator', True, True)
         d_vars = tl.layers.get_variables_with_name('discriminator', True, True)
@@ -176,6 +175,10 @@ def main(_):
 
     ##========================= TRAIN MODELS ================================##
     iter_counter = 0
+    total_files_eval = (min(len(train_files), FLAGS.train_size) // FLAGS.batch_size) * FLAGS.batch_size
+    num_evals = (FLAGS.epoch // FLAGS.eval_step)
+    result_scores = np.zeros((num_evals, total_files_eval), dtype=np.float64)
+    res_idx = 0
     for epoch in range(FLAGS.epoch):
 
         ## load image data
@@ -201,21 +204,24 @@ def main(_):
             # updates the scorer
             errS, _ = sess.run([s_loss, s_optim], feed_dict={x_features: batch_features})
             
-            
-            
             print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f. s_loss: %.8f" \
                     % (epoch, FLAGS.epoch, idx, batch_idxs, time.time() - start_time, errD, errG, errS))
 
             iter_counter += 1
             
-            """
-            if np.mod(iter_counter, FLAGS.sample_step) == 0:
-                # generate and visualize generated images
-                img, errD, errG = sess.run([net_g2.outputs, d_loss, g_loss], feed_dict={z : sample_seed, real_images: sample_images})
-                tl.visualize.save_images(img, [8, 8], './{}/train_{:02d}_{:04d}.png'.format(FLAGS.sample_dir, epoch, idx))
-                print("[Sample] d_loss: %.8f, g_loss: %.8f" % (errD, errG))
-            """
-
+            if np.mod(epoch, FLAGS.eval_step) == 0:
+                # generate the list of selected images.
+                batch_idxs = min(len(train_files), FLAGS.train_size) // FLAGS.batch_size
+                score_idx = 0
+                for idx in range(batch_idxs):
+                    batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
+                    batch_score, errS = sess.run([net_s2.outputs, s_loss], feed_dict={x_features : batch_features})
+                    for bidx in range(FLAGS.batch_size):
+                        result_scores[res_idx][score_idx] = batch_score[bidx][0]
+                        score_idx = score_idx + 1
+                print("[Evaluation] s_loss: %.8f" % (errS))
+                res_idx = res_idx + 1
+            
             if np.mod(iter_counter, FLAGS.save_step) == 0:
                 # save current network parameters
                 print("[*] Saving checkpoints...")
@@ -223,6 +229,14 @@ def main(_):
                 tl.files.save_npz(net_g.all_params, name=net_g_name, sess=sess)
                 tl.files.save_npz(net_d.all_params, name=net_d_name, sess=sess)
                 print("[*] Saving checkpoints SUCCESS!")
+    
+    ##################### Understanding the scores ##################
+    num_of_epochs_recorded = result_scores.shape[0]
+    num_of_files_recorded = result_scores.shape[1]
+    for i in range(num_of_epochs_recorded):
+        for j in range(num_of_files_reocrded):
+            ##### Check if score greater than threshold.... if yes... then for that j, see the label from train_labels and increase the count of that label
+            
 
 if __name__ == '__main__':
     tf.app.run()
