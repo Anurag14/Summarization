@@ -233,10 +233,18 @@ def main(_):
     ##################### Understanding the scores ##################
     num_of_epochs_recorded = result_scores.shape[0]
     num_of_files_recorded = result_scores.shape[1]
+    main_dict={} #dictionary of dictionaries of type {epoch0:{"airplane":100,"frog":10...},epoch1:{"airplane":...}...}
     for i in range(num_of_epochs_recorded):
-        for j in range(num_of_files_reocrded):
+        count_dict={}#dictionary for each epoch containing the count of each label
+        for j in range(num_of_files_recorded):
             ##### Check if score greater than threshold.... if yes... then for that j, see the label from train_labels and increase the count of that label
-            
+            if(result_scores[i][j]>FLAGS.threshold):
+                label_of_image=train_labels[i*FLAGS.batch_size+j]
+                if (label_of_image not in count_dict):
+                    count_dict[label_of_image]=1
+                else:
+                    count_dict[label_of_image]+=1
+        main_dict[i]=count_dict
 
 if __name__ == '__main__':
     tf.app.run()
