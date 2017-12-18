@@ -239,7 +239,7 @@ def main(_):
         for j in range(num_of_files_recorded):
             ##### Check if score greater than threshold.... if yes... then for that j, see the label from train_labels and increase the count of that label
             if(result_scores[i][j]>FLAGS.threshold):
-                label_of_image=train_labels[i*FLAGS.batch_size+j]
+                label_of_image=train_labels[j]
                 if (label_of_image not in count_dict):
                     count_dict[label_of_image]=1
                 else:
