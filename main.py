@@ -31,6 +31,7 @@ from model import *
 from utils import *
 
 import cv2
+import pickle
 
 pp = pprint.PrettyPrinter()
 
@@ -245,6 +246,11 @@ def main(_):
                 else:
                     count_dict[label_of_image]+=1
         main_dict[i]=count_dict
+
+    outputFileName = "./Outputs/output" + time.strftime("%Y%m%d-%H%M%S") + ".pickle"
+    pickle_out = open(outputFileName, "wb")
+    pickle.dump(main_dict, pickle_out)
+    pickle_out.close()
 
 if __name__ == '__main__':
     tf.app.run()
