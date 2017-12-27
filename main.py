@@ -36,6 +36,7 @@ import pickle
 pp = pprint.PrettyPrinter()
 
 flags = tf.app.flags
+flags.DEFINE_string("dataset", "cifar10", "The name of dataset [celebA, mnist, lsun]")
 flags.DEFINE_integer("epoch", 25, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
@@ -47,7 +48,6 @@ flags.DEFINE_integer("sample_size", 64, "The number of sample images [64]")
 flags.DEFINE_integer("c_dim", 3, "Dimension of image color. [3]")
 flags.DEFINE_integer("eval_step", 5, "The interval of generating sample. [500]")
 flags.DEFINE_integer("save_step", 100, "The interval of saveing checkpoints. [500]")
-flags.DEFINE_string("dataset", "celebA", "The name of dataset [celebA, mnist, lsun]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
 flags.DEFINE_boolean("is_train", True, "True for training, False for testing [False]")
