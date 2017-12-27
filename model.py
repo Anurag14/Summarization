@@ -11,22 +11,21 @@ def sANN_simplified_api(inputs, is_train=True, reuse=False):
     feature_size = 2048
     fc_neurons = 1024
     batch_size = FLAGS.batch_size
-    w_init = tf.random_normal_initializer(stddev=0.02)
     with tf.variable_scope("sANN", reuse=reuse):
         tl.layers.set_name_reuse(reuse)
         
         net_in = InputLayer(inputs, name='s/in')
         net_in = DropoutLayer(net_in, keep=0.8, name='s/in/drop')
         
-        net_h0 = DenseLayer(net_in, n_units=fc_neurons, W_init = w_init,
+        net_h0 = DenseLayer(net_in, n_units=fc_neurons,
                                 act = tf.nn.relu, name='s/h0')
         net_h0 = DropoutLayer(net_h0, keep=0.5, name='s/h0/drop')
         
-        net_h1 = DenseLayer(net_h0, n_units=fc_neurons, W_init = w_init,
+        net_h1 = DenseLayer(net_h0, n_units=fc_neurons,
                                 act = tf.nn.relu, name='s/h1')
         net_h1 = DropoutLayer(net_h1, keep=0.5, name='s/h1/drop')
         
-        net_h2 = DenseLayer(net_h1, n_units=num_classes, W_init = w_init,
+        net_h2 = DenseLayer(net_h1, n_units=num_classes,
                                 act = tf.sigmoid,
                                 name='s/h2')
         logits = net_h2.outputs

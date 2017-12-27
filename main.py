@@ -110,7 +110,7 @@ def main(_):
         ##========================= DEFINE MODEL ===========================##
         train_features, train_labels, train_files = prep_data()
         
-        x_features = tf.placeholder(tf.float32, shape=[FLAGS.batch_size, feature_size])
+        x_features = tf.placeholder(tf.float32, shape=[FLAGS.batch_size, feature_size], name="features_batch")
         real_images =  tf.placeholder(tf.float32, [FLAGS.batch_size, FLAGS.output_size, FLAGS.output_size, FLAGS.c_dim], name='real_images')
 
         # x --> scorer for training
