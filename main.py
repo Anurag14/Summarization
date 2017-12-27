@@ -199,9 +199,9 @@ def main(_):
             errD, _ = sess.run([d_loss, d_optim], feed_dict={x_features: batch_features, real_images: batch_images })
             # updates the generator, run generator twice to make sure that d_loss does not go to zero (difference from paper)
             for _ in range(2):
-                errG, _ = sess.run([g_loss, g_optim], feed_dict={x_features: batch_features})
+                errG, _ = sess.run([g_loss, g_optim], feed_dict={x_features: batch_features, real_images: batch_images })
             # updates the scorer
-            errS, _ = sess.run([s_loss, s_optim], feed_dict={x_features: batch_features})
+            errS, _ = sess.run([s_loss, s_optim], feed_dict={x_features: batch_features, real_images: batch_images })
             
             print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f. s_loss: %.8f" \
                     % (epoch, FLAGS.epoch, idx, batch_idxs, time.time() - start_time, errD, errG, errS))
