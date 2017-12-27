@@ -36,7 +36,7 @@ import pickle
 pp = pprint.PrettyPrinter()
 
 flags = tf.app.flags
-flags.DEFINE_string("dataset", "cifar10", "The name of dataset [celebA, mnist, lsun]")
+flags.DEFINE_string("dataset", "cifar10", "The name of dataset [cifar10, cifar100]")
 flags.DEFINE_integer("epoch", 25, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
@@ -68,6 +68,7 @@ def prep_data():
     f = h5py.File('features_cifar10sorted.h5', 'r')
     
     train_features = np.array(f['train_images']).astype('float32') 
+    #train_features = np.zeros((50000, 2048), dtype=np.float32)
     train_labels = np.array(f['train_labels'])
     train_files = np.array(f['train_files'])
    
@@ -99,7 +100,7 @@ num_epochs = 24
 eval_frequency = 10 # Number of steps between evaluations.
 
 ###  
-    
+
 def main(_): 
     pp.pprint(flags.FLAGS.__flags)
     
@@ -116,7 +117,7 @@ def main(_):
         # x --> scorer for training
         net_s, s_logits = sANN_simplified_api(x_features, is_train=True, reuse=False)
         # z --> generator for training
-        z = s_logits * x_features
+        z = tf.multiply(s_logits, x_features, name="noise_prod")
         net_g, g_logits = generator_simplified_api(z, is_train=True, reuse=False)
         # generated fake images --> discriminator
         net_d, d_logits = discriminator_simplified_api(net_g.outputs, is_train=True, reuse=False)
@@ -138,7 +139,7 @@ def main(_):
         # generator: try to make the the fake images look real (1)
         g_loss = tl.cost.sigmoid_cross_entropy(d_logits, tf.ones_like(d_logits), name='gfake')
         # cost for updating scorer
-        s_loss=np.sum(s_logits)/FLAGS.batch_size-FLAGS.hyperparameter
+        s_loss=tf.subtract(tf.divide(tf.reduce_sum(s_logits), FLAGS.batch_size),FLAGS.hyperparameter)
         
         s_vars = tl.layers.get_variables_with_name('sANN', True, True)
         g_vars = tl.layers.get_variables_with_name('generator', True, True)
@@ -202,24 +203,12 @@ def main(_):
                 errG, _ = sess.run([g_loss, g_optim], feed_dict={x_features: batch_features, real_images: batch_images })
             # updates the scorer
             errS, _ = sess.run([s_loss, s_optim], feed_dict={x_features: batch_features, real_images: batch_images })
-            
+            #print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f" \
+            #        % (epoch, FLAGS.epoch, idx, batch_idxs, time.time() - start_time, errD, errG))
             print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f. s_loss: %.8f" \
                     % (epoch, FLAGS.epoch, idx, batch_idxs, time.time() - start_time, errD, errG, errS))
 
             iter_counter += 1
-            
-            if np.mod(epoch, FLAGS.eval_step) == 0:
-                # generate the list of selected images.
-                batch_idxs = min(len(train_files), FLAGS.train_size) // FLAGS.batch_size
-                score_idx = 0
-                for idx in range(batch_idxs):
-                    batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
-                    batch_score, errS = sess.run([net_s2.outputs, s_loss], feed_dict={x_features : batch_features})
-                    for bidx in range(FLAGS.batch_size):
-                        result_scores[res_idx][score_idx] = batch_score[bidx][0]
-                        score_idx = score_idx + 1
-                print("[Evaluation] s_loss: %.8f" % (errS))
-                res_idx = res_idx + 1
             
             if np.mod(iter_counter, FLAGS.save_step) == 0:
                 # save current network parameters
@@ -228,6 +217,19 @@ def main(_):
                 tl.files.save_npz(net_g.all_params, name=net_g_name, sess=sess)
                 tl.files.save_npz(net_d.all_params, name=net_d_name, sess=sess)
                 print("[*] Saving checkpoints SUCCESS!")
+        
+        if np.mod(epoch, FLAGS.eval_step) == 0:
+            # generate the list of selected images.
+            batch_idxs = min(len(train_files), FLAGS.train_size) // FLAGS.batch_size
+            score_idx = 0
+            for idx in range(batch_idxs):
+                batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
+                batch_score, errS = sess.run([net_s2.outputs, s_loss], feed_dict={x_features : batch_features})
+                for bidx in range(FLAGS.batch_size):
+                    result_scores[res_idx][score_idx] = batch_score[bidx][0]
+                    score_idx = score_idx + 1
+            print("[Evaluation] s_loss: %.8f" % (errS))
+            res_idx = res_idx + 1
     
     ##################### Understanding the scores ##################
     num_of_epochs_recorded = result_scores.shape[0]
