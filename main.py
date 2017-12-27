@@ -67,7 +67,7 @@ def prep_data():
     
     f = h5py.File('features_cifar10sorted.h5', 'r')
     
-    train_features = np.array(f['train_images']).astype('float64') 
+    train_features = np.array(f['train_images']).astype('float32') 
     train_labels = np.array(f['train_labels'])
     train_files = np.array(f['train_files'])
    
@@ -82,8 +82,6 @@ def prep_data():
         decoded = train_files[i].decode('ASCII')
         temp.append(decoded)
     train_files = np.array(temp)
-    
-    temp.clear()
         
     return train_features, train_labels, train_files
 
@@ -112,8 +110,8 @@ def main(_):
         ##========================= DEFINE MODEL ===========================##
         train_features, train_labels, train_files = prep_data()
         
-        x_features = tf.placeholder(tf.float64, shape=[FLAGS.batch_size, feature_size])
-        real_images =  tf.placeholder(tf.float64, [FLAGS.batch_size, FLAGS.output_size, FLAGS.output_size, FLAGS.c_dim], name='real_images')
+        x_features = tf.placeholder(tf.float32, shape=[FLAGS.batch_size, feature_size])
+        real_images =  tf.placeholder(tf.float32, [FLAGS.batch_size, FLAGS.output_size, FLAGS.output_size, FLAGS.c_dim], name='real_images')
 
         # x --> scorer for training
         net_s, s_logits = sANN_simplified_api(x_features, is_train=True, reuse=False)
@@ -178,7 +176,7 @@ def main(_):
     iter_counter = 0
     total_files_eval = (min(len(train_files), FLAGS.train_size) // FLAGS.batch_size) * FLAGS.batch_size
     num_evals = (FLAGS.epoch // FLAGS.eval_step)
-    result_scores = np.zeros((num_evals, total_files_eval), dtype=np.float64)
+    result_scores = np.zeros((num_evals, total_files_eval), dtype=np.float32)
     res_idx = 0
     for epoch in range(FLAGS.epoch):
 
@@ -192,7 +190,7 @@ def main(_):
             for fl in batch_files:
                 image = cv2.imread(fl)
                 image = cv2.resize(image, (FLAGS.output_size, FLAGS.output_size), 0, 0, cv2.INTER_CUBIC)
-                image = image.astype(np.float64)
+                image = image.astype(np.float32)
                 batch_images.append(image)
             batch_images = np.array(batch_images)
             batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
