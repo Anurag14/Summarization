@@ -144,11 +144,11 @@ def main(_):
         g_vars = tl.layers.get_variables_with_name('generator', True, True)
         d_vars = tl.layers.get_variables_with_name('discriminator', True, True)
 
-        net_s.print_params(True)
+        net_s.print_params(False)
         print("---------------")
-        net_g.print_params(True)
+        net_g.print_params(False)
         print("---------------")
-        net_d.print_params(True)
+        net_d.print_params(False)
 
         # optimizers for updating scorer, discriminator and generator
         d_optim = tf.train.AdamOptimizer(FLAGS.learning_rate, beta1=FLAGS.beta1) \
