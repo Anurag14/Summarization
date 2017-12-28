@@ -31,6 +31,7 @@ from model import *
 from utils import *
 
 import cv2
+import errno
 import pickle
 
 pp = pprint.PrettyPrinter()
@@ -50,7 +51,7 @@ flags.DEFINE_integer("eval_step", 5, "The interval of generating sample. [500]")
 flags.DEFINE_integer("save_step", 100, "The interval of saveing checkpoints. [500]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
-flags.DEFINE_boolean("is_train", True, "True for training, False for testing [False]")
+flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("is_crop", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
 flags.DEFINE_float("hyperparameter",0.7,"The parameter for scorer loss calculations")
@@ -67,8 +68,8 @@ def prep_data():
     
     f = h5py.File('features_cifar10sorted.h5', 'r')
     
-    train_features = np.array(f['train_images']).astype('float32') 
-    #train_features = np.zeros((50000, 2048), dtype=np.float32)
+    #train_features = np.array(f['train_images']).astype('float32') 
+    train_features = np.zeros((50000, 2048), dtype=np.float32)
     train_labels = np.array(f['train_labels'])
     train_files = np.array(f['train_files'])
    
@@ -173,8 +174,29 @@ def main(_):
 
     #sample_seed = np.random.normal(loc=0.0, scale=1.0, size=(FLAGS.sample_size, z_dim)).astype(np.float64)# sample_seed = np.random.uniform(low=-1, high=1, size=(FLAGS.sample_size, z_dim)).astype(np.float32)
 
+    if FLAGS.is_train == False:
+        print("Prediction Mode ON!")
+        total_files_eval = (min(len(train_files), FLAGS.train_size) // FLAGS.batch_size) * FLAGS.batch_size
+        result_scores = np.zeros((1, total_files_eval), dtype=np.float32)
+        tl.files.load_and_assign_npz(sess, name=net_s_name, network=net_s2)
+        batch_idxs = min(len(train_files), FLAGS.train_size) // FLAGS.batch_size
+        score_idx = 0
+        count_dict={}
+        for idx in range(batch_idxs):
+            batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
+            batch_score = sess.run([net_s2.outputs], feed_dict={x_features : batch_features})
+            for bidx in range(FLAGS.batch_size):
+                if(batch_score[bidx][0]>FLAGS.threshold):
+                    label_of_image=train_labels[score_idx]
+                    if (label_of_image not in count_dict):
+                        count_dict[label_of_image]=1
+                    else:
+                        count_dict[label_of_image]+=1
+                score_idx = score_idx + 1
+        print(count_dict)
+        exit()
+    
     ##========================= TRAIN MODELS ================================##
-    iter_counter = 0
     total_files_eval = (min(len(train_files), FLAGS.train_size) // FLAGS.batch_size) * FLAGS.batch_size
     num_evals = (FLAGS.epoch // FLAGS.eval_step)
     result_scores = np.zeros((num_evals, total_files_eval), dtype=np.float32)
@@ -208,17 +230,14 @@ def main(_):
             print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f. s_loss: %.8f" \
                     % (epoch, FLAGS.epoch, idx, batch_idxs, time.time() - start_time, errD, errG, errS))
 
-            iter_counter += 1
-            
-            if np.mod(iter_counter, FLAGS.save_step) == 0:
-                # save current network parameters
-                print("[*] Saving checkpoints...")
-                tl.files.save_npz(net_s.all_params, name=net_s_name, sess=sess)
-                tl.files.save_npz(net_g.all_params, name=net_g_name, sess=sess)
-                tl.files.save_npz(net_d.all_params, name=net_d_name, sess=sess)
-                print("[*] Saving checkpoints SUCCESS!")
-        
-        if np.mod(epoch, FLAGS.eval_step) == 0:
+        tl.files.assign_params()
+        if np.mod((epoch + 1), FLAGS.eval_step) == 0:
+            # save current network parameters
+            print("[*] Saving checkpoints...")
+            tl.files.save_npz(net_s.all_params, name=net_s_name, sess=sess)
+            tl.files.save_npz(net_g.all_params, name=net_g_name, sess=sess)
+            tl.files.save_npz(net_d.all_params, name=net_d_name, sess=sess)
+            print("[*] Saving checkpoints SUCCESS!")
             # generate the list of selected images.
             batch_idxs = min(len(train_files), FLAGS.train_size) // FLAGS.batch_size
             score_idx = 0
@@ -246,12 +265,21 @@ def main(_):
                 else:
                     count_dict[label_of_image]+=1
         main_dict[i]=count_dict
+    
+    for key in main_dict:
+        print(key, " => ", main_dict[key])
+    
+    try:
+        os.makedirs("./Outputs/")
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
     outputFileName = "./Outputs/output" + time.strftime("%Y%m%d-%H%M%S") + ".pickle"
     pickle_out = open(outputFileName, "wb")
     pickle.dump(main_dict, pickle_out)
     pickle_out.close()
-
+    
 if __name__ == '__main__':
     tf.app.run()
 
