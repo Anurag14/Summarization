@@ -177,7 +177,6 @@ def main(_):
     if FLAGS.is_train == False:
         print("Prediction Mode ON!")
         total_files_eval = (min(len(train_files), FLAGS.train_size) // FLAGS.batch_size) * FLAGS.batch_size
-        result_scores = np.zeros((1, total_files_eval), dtype=np.float32)
         tl.files.load_and_assign_npz(sess, name=net_s_name, network=net_s2)
         batch_idxs = min(len(train_files), FLAGS.train_size) // FLAGS.batch_size
         score_idx = 0
@@ -185,8 +184,9 @@ def main(_):
         for idx in range(batch_idxs):
             batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
             batch_score = sess.run([net_s2.outputs], feed_dict={x_features : batch_features})
+            print(len(batch_score))
             for bidx in range(FLAGS.batch_size):
-                if(batch_score[bidx][0]>FLAGS.threshold):
+                if(batch_score[bidx][0] > FLAGS.threshold):
                     label_of_image=train_labels[score_idx]
                     if (label_of_image not in count_dict):
                         count_dict[label_of_image]=1
@@ -230,7 +230,6 @@ def main(_):
             print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f. s_loss: %.8f" \
                     % (epoch, FLAGS.epoch, idx, batch_idxs, time.time() - start_time, errD, errG, errS))
 
-        tl.files.assign_params()
         if np.mod((epoch + 1), FLAGS.eval_step) == 0:
             # save current network parameters
             print("[*] Saving checkpoints...")
