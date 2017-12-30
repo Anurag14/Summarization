@@ -68,8 +68,8 @@ def prep_data():
     
     f = h5py.File('features_cifar10sorted.h5', 'r')
     
-    #train_features = np.array(f['train_images']).astype('float32') 
-    train_features = np.zeros((50000, 2048), dtype=np.float32)
+    train_features = np.array(f['train_images']).astype('float32') 
+    #train_features = np.zeros((50000, 2048), dtype=np.float32)
     train_labels = np.array(f['train_labels'])
     train_files = np.array(f['train_files'])
    
@@ -185,6 +185,7 @@ def main(_):
             batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
             batch_score = sess.run([net_s2.outputs], feed_dict={x_features : batch_features})
             print(len(batch_score))
+	    print(batch_score)
             for bidx in range(FLAGS.batch_size):
                 if(batch_score[bidx][0] > FLAGS.threshold):
                     label_of_image=train_labels[score_idx]
