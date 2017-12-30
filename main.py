@@ -187,7 +187,7 @@ def main(_):
             print(len(batch_score))
 	    print(batch_score)
             for bidx in range(FLAGS.batch_size):
-                if(batch_score[bidx][0] > FLAGS.threshold):
+                if(batch_score[0][bidx] > FLAGS.threshold):
                     label_of_image=train_labels[score_idx]
                     if (label_of_image not in count_dict):
                         count_dict[label_of_image]=1
