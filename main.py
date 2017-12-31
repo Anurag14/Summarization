@@ -54,8 +54,8 @@ flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image s
 flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("is_crop", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
-flags.DEFINE_float("hyperparameter",0.7,"The parameter for scorer loss calculations")
-flags.DEFINE_float("threshold",0.92,"The confidence for selecting a image")
+flags.DEFINE_float("hyperparameter",0.6,"The parameter for scorer loss calculations")
+flags.DEFINE_float("threshold",0.8,"The confidence for selecting a image")
 FLAGS = flags.FLAGS
 
 # Adding Seed so that random initialization is consistent
@@ -184,8 +184,8 @@ def main(_):
         for idx in range(batch_idxs):
             batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
             batch_score = sess.run([net_s2.outputs], feed_dict={x_features : batch_features})
-            print(len(batch_score))
-	    print(batch_score)
+            #print(len(batch_score))
+            #print(batch_score)
             for bidx in range(FLAGS.batch_size):
                 if(batch_score[0][bidx] > FLAGS.threshold):
                     label_of_image=train_labels[score_idx]
@@ -244,8 +244,11 @@ def main(_):
             for idx in range(batch_idxs):
                 batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
                 batch_score, errS = sess.run([net_s2.outputs, s_loss], feed_dict={x_features : batch_features})
+                print(len(batch_score))
+                print(batch_score[0].shape)
+                print(batch_score)
                 for bidx in range(FLAGS.batch_size):
-                    result_scores[res_idx][score_idx] = batch_score[bidx][0]
+                    result_scores[res_idx][score_idx] = batch_score[0][bidx]
                     score_idx = score_idx + 1
             print("[Evaluation] s_loss: %.8f" % (errS))
             res_idx = res_idx + 1
