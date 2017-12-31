@@ -37,6 +37,7 @@ import pickle
 pp = pprint.PrettyPrinter()
 
 flags = tf.app.flags
+flags.DEFINE_string("device", "/cpu:0", "The device to use for training/testing")
 flags.DEFINE_string("dataset", "cifar10", "The name of dataset [cifar10, cifar100]")
 flags.DEFINE_integer("epoch", 25, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
@@ -108,7 +109,7 @@ def main(_):
     tl.files.exists_or_mkdir(FLAGS.checkpoint_dir)
     tl.files.exists_or_mkdir(FLAGS.sample_dir)
     
-    with tf.device("/cpu:0"):
+    with tf.device(FLAGS.device):
         ##========================= DEFINE MODEL ===========================##
         train_features, train_labels, train_files = prep_data()
         
@@ -239,18 +240,18 @@ def main(_):
             tl.files.save_npz(net_d.all_params, name=net_d_name, sess=sess)
             print("[*] Saving checkpoints SUCCESS!")
             # generate the list of selected images.
+	    print("Evaluating and adding scores to the result.")
             batch_idxs = min(len(train_files), FLAGS.train_size) // FLAGS.batch_size
             score_idx = 0
             for idx in range(batch_idxs):
                 batch_features = train_features[idx*FLAGS.batch_size:(idx+1)*FLAGS.batch_size]
-                batch_score, errS = sess.run([net_s2.outputs, s_loss], feed_dict={x_features : batch_features})
-                print(len(batch_score))
-                print(batch_score[0].shape)
-                print(batch_score)
+                batch_score = sess.run([net_s2.outputs], feed_dict={x_features : batch_features})
+                #print(len(batch_score))
+                #print(batch_score[0].shape)
+                #print(batch_score)
                 for bidx in range(FLAGS.batch_size):
                     result_scores[res_idx][score_idx] = batch_score[0][bidx]
                     score_idx = score_idx + 1
-            print("[Evaluation] s_loss: %.8f" % (errS))
             res_idx = res_idx + 1
     
     ##################### Understanding the scores ##################

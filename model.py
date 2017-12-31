@@ -9,7 +9,7 @@ FLAGS = flags.FLAGS
 def sANN_simplified_api(inputs, is_train=True, reuse=False):
     num_classes = 1
     feature_size = 2048
-    fc_neurons = 4096
+    fc_neurons = 1024
     batch_size = FLAGS.batch_size
     keep_prob = 0.8
     with tf.variable_scope("sANN", reuse=reuse):
