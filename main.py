@@ -55,8 +55,8 @@ flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image s
 flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("is_crop", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
-flags.DEFINE_float("hyperparameter",0.6,"The parameter for scorer loss calculations")
-flags.DEFINE_float("threshold",0.8,"The confidence for selecting a image")
+flags.DEFINE_float("hyperparameter", 0.4, "The parameter for scorer loss calculations")
+flags.DEFINE_float("threshold", 0.8, "The confidence for selecting a image")
 FLAGS = flags.FLAGS
 
 # Adding Seed so that random initialization is consistent
@@ -141,7 +141,7 @@ def main(_):
         # generator: try to make the the fake images look real (1)
         g_loss = tl.cost.sigmoid_cross_entropy(d_logits, tf.ones_like(d_logits), name='gfake')
         # cost for updating scorer
-        s_loss=tf.subtract(tf.divide(tf.reduce_sum(s_logits), FLAGS.batch_size),FLAGS.hyperparameter)
+        s_loss = tf.subtract(tf.divide(tf.reduce_sum(s_logits), FLAGS.batch_size),FLAGS.hyperparameter)
         
         s_vars = tl.layers.get_variables_with_name('sANN', True, True)
         g_vars = tl.layers.get_variables_with_name('generator', True, True)
@@ -240,7 +240,7 @@ def main(_):
             tl.files.save_npz(net_d.all_params, name=net_d_name, sess=sess)
             print("[*] Saving checkpoints SUCCESS!")
             # generate the list of selected images.
-	    print("Evaluating and adding scores to the result.")
+            print("Evaluating and adding scores to the result.")
             batch_idxs = min(len(train_files), FLAGS.train_size) // FLAGS.batch_size
             score_idx = 0
             for idx in range(batch_idxs):
@@ -282,6 +282,7 @@ def main(_):
     outputFileName = "./Outputs/output" + time.strftime("%Y%m%d-%H%M%S") + ".pickle"
     pickle_out = open(outputFileName, "wb")
     pickle.dump(main_dict, pickle_out)
+    pickle.dump(result_scores, pickle_out)
     pickle_out.close()
     
 if __name__ == '__main__':
