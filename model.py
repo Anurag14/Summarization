@@ -16,11 +16,11 @@ def sANN_simplified_api(inputs, is_train=True, reuse=False):
         net_in = DropoutLayer(net_in, keep=0.8, name='s/in/drop', is_fix=True)
         
         net_h0 = DenseLayer(net_in, n_units=fc_neurons,
-                                act = tf.keras.layers.LeakyReLU, name='s/h0')
+                                act = tf.contrib.keras.layers.LeakyReLU, name='s/h0')
         net_h0 = DropoutLayer(net_h0, keep=0.5, name='s/h0/drop', is_fix=True)
         
         net_h1 = DenseLayer(net_h0, n_units=fc_neurons,
-                                act = tf.keras.layers.LeakyReLU, name='s/h1')
+                                act = tf.contrib.keras.layers.LeakyReLU, name='s/h1')
         net_h1 = DropoutLayer(net_h1, keep=0.5, name='s/h1/drop', is_fix=True)
         
         net_h2 = DenseLayer(net_h1, n_units=num_classes,
