@@ -39,6 +39,7 @@ pp = pprint.PrettyPrinter()
 flags = tf.app.flags
 flags.DEFINE_string("device", "/cpu:0", "The device to use for training/testing")
 flags.DEFINE_string("dataset", "cifar10", "The name of dataset [cifar10, cifar100]")
+flags.DEFINE_string("feature_filename", "features_cifar10sorted.h5", "The name of the feature file.")
 flags.DEFINE_integer("epoch", 25, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
@@ -67,7 +68,7 @@ set_random_seed(2)
 
 def prep_data():
     
-    f = h5py.File('features_cifar10sorted.h5', 'r')
+    f = h5py.File(FLAGS.feature_filename, 'r')
     
     train_features = np.array(f['train_images']).astype('float32') 
     #train_features = np.zeros((50000, 2048), dtype=np.float32)
@@ -273,6 +274,10 @@ def main(_):
     for key in main_dict:
         print(key, " => ", main_dict[key])
     
+    outputFileName = "./Outputs/output" + time.strftime("%Y%m%d-%H%M%S") + FLAGS.dataset
+    np.save(outputFileName, result_scores)
+    
+    """
     try:
         os.makedirs("./Outputs/")
     except OSError as e:
@@ -284,7 +289,7 @@ def main(_):
     pickle.dump(main_dict, pickle_out)
     pickle.dump(result_scores, pickle_out)
     pickle_out.close()
-    
+    """
 if __name__ == '__main__':
     tf.app.run()
 
