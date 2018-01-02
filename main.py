@@ -159,7 +159,7 @@ def main(_):
                           .minimize(d_loss, var_list=d_vars)
         g_optim = tf.train.AdamOptimizer(FLAGS.learning_rate, beta1=FLAGS.beta1) \
                           .minimize(g_loss, var_list=g_vars)
-        s_optim = tf.train.AdamOptimizer(FLAGS.learning_rate, beta1=FLAGS.beta1) \
+        s_optim = tf.train.AdamOptimizer(FLAGS.learning_rate * 10, beta1=FLAGS.beta1) \
                           .minimize(d_loss, var_list=s_vars)
         
     sess = tf.InteractiveSession()
@@ -274,16 +274,16 @@ def main(_):
     for key in main_dict:
         print(key, " => ", main_dict[key])
     
-    outputFileName = "./Outputs/output" + time.strftime("%Y%m%d-%H%M%S") + FLAGS.dataset
-    np.save(outputFileName, result_scores)
-    
-    """
     try:
         os.makedirs("./Outputs/")
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
-
+    
+    outputFileName = "./Outputs/output" + time.strftime("%Y%m%d-%H%M%S") + FLAGS.dataset
+    np.save(outputFileName, result_scores)
+    
+    """
     outputFileName = "./Outputs/output" + time.strftime("%Y%m%d-%H%M%S") + ".pickle"
     pickle_out = open(outputFileName, "wb")
     pickle.dump(main_dict, pickle_out)
