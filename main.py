@@ -151,7 +151,7 @@ def main(_):
         det_L=tf.linalg.det(similarity_matrix+I_eye)
     
         selected_images=tf.session().run(selected_images)
-        subset_indexs=list(np.where(selected_images==True)
+        subset_indexs=list(np.where(selected_images==True))
         Likelihood_matix=tf.session().run(similarity_matrix)
         L_s=Likelihood_matrix[np.ix_(subset_indexs,subset_indexs)]
         det_L_s=np.linalg.det(L_s)
