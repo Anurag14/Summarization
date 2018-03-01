@@ -121,6 +121,7 @@ def main(_):
         net_s, s_logits = sANN_simplified_api(x_features, is_train=True, reuse=False)
         # z --> generator for training
         z = tf.multiply(s_logits, x_features, name="noise_prod")
+        
         net_g, g_logits = generator_simplified_api(z, is_train=True, reuse=False)
         # generated fake images --> discriminator
         net_d, d_logits = discriminator_simplified_api(net_g.outputs, is_train=True, reuse=False)
@@ -142,6 +143,20 @@ def main(_):
         # generator: try to make the the fake images look real (1)
         g_loss = tl.cost.sigmoid_cross_entropy(d_logits, tf.ones_like(d_logits), name='gfake')
         # cost for updating scorer
+        #dpp loss added 
+        selected_images=s_logits>FLAGS.threshold
+        vector_bases=tf.mulitply(selected_images,x_features,name="noise_prod")
+        similarity_matrix=tf.matmul(vector_bases,tf.transpose(vector_bases))
+        I_eye=tf.eye(tf.shape(similarity_matrix)[0])
+        det_L=tf.linalg.det(similarity_matrix+I_eye)
+    
+        selected_images=tf.session().run(selected_images)
+        subset_indexs=list(np.where(selected_images>FLags.threshold)[0])
+        Likelihood_matix=tf.session().run(similarity_matrix)
+        L_s=Likelihood_matrix[np.ix_(subset_indexs,subset_indexs)]
+        det_L_s=np.linalg.det(L_s)
+        dpp_loss=det_L_s/det_L
+        #dpp_loss ends 
         s_loss = tf.subtract(tf.divide(tf.reduce_sum(s_logits), FLAGS.batch_size),FLAGS.hyperparameter)
         
         s_vars = tl.layers.get_variables_with_name('sANN', True, True)
